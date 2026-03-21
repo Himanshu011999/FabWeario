@@ -6,48 +6,82 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Models\TempImage;
 use App\Models\Banner;
 use Illuminate\Http\Request;
 
 class BannerController extends Controller
 {
     public function saveBannerImage(Request $request) {
-        $validator = Validator::make($request->all(),[
-            'banner_image' => 'required|image|mimes:jpeg,jpg,png,gif'
-        ]);
+        // Validate that gallery is required and should be an array
+    $validator = Validator::make($request->all(), [
+        'gallery' => 'required|array',
+        'gallery.*' => 'integer|exists:temp_images,id'
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->errors()
-            ],400);
-        }
-
-        $bannerImage = $request->file('banner_image');
-        $bannerImageName = $request->user()->id . '-' . time() . '.' . $bannerImage->extension();
-        $destinationPath = public_path('uploads/banner');
-        $outputPath = $destinationPath . '/' . $bannerImageName;
-
-        // Ensure the directory exists
-        if (!file_exists($destinationPath)) {
-            mkdir($destinationPath, 0755, true);
-        }
-
-        // ✅ Resize using Intervention Image v3
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read($bannerImage->getPathname());
-        $image->cover(1200, 600); // Resize to 1200x600
-        $image->save($outputPath); // Save resized image
-
-        $banner = new Banner();
-        $banner->banner_image = $bannerImageName; // Save image path in DB
-        $banner->uploaded_by = $request->user()->id; // Optional: track who uploaded it
-        $banner->save();
-
+    if ($validator->fails()) {
         return response()->json([
-            'status' => 200,
-            'message' => 'Banner has been uploaded Successfully',
-            'data' => $banner
-        ],200);
+            'status' => 400,
+            'errors' => $validator->errors()
+        ], 400);
+    }
+
+    $savedBanners = [];
+    $manager = new ImageManager(new Driver());
+
+    foreach ($request->gallery as $tempImageId) {
+        $tempImage = TempImage::find($tempImageId);
+        
+        if ($tempImage) {
+            $sourcePath = public_path('uploads/temp/' . $tempImage->name);
+            
+            // ✅ File must exist and must be readable image
+            if (!file_exists($sourcePath)) {
+                continue;
+            }
+
+            if (!@getimagesize($sourcePath)) {
+                continue; // Not a valid image
+            }
+
+            try {
+                $image = $manager->read($sourcePath);
+            } catch (\Intervention\Image\Exceptions\DecoderException $e) {
+                continue; // Skip image if decoding fails
+            }
+
+            $bannerImageName = $request->user()->id . '-' . time() . '-' . uniqid() . '.' . pathinfo($tempImage->name, PATHINFO_EXTENSION);
+            $destinationPath = public_path('uploads/banner');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $outputPath = $destinationPath . '/' . $bannerImageName;
+
+            // Resize and save image
+            $image->cover(1200, 600);
+            $image->save($outputPath);
+
+            // Save to DB
+            $banner = new Banner();
+            $banner->banner_image = $bannerImageName;
+            $banner->uploaded_by = $request->user()->id;
+            $banner->save();
+
+            $savedBanners[] = $banner;
+
+            // Clean up temp file
+            @unlink($sourcePath);
+            $tempImage->delete();
+        }
+    }
+
+
+    return response()->json([
+        'status' => 200,
+        'message' => 'Banner images have been saved successfully.',
+        'data' => $savedBanners
+    ], 200);
     }
 }

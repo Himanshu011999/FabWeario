@@ -52,7 +52,7 @@ const Edit = ({ placeholder }) => {
                     category: result.data.category_id,
                     short_description: result.data.short_description,
                     description: result.data.description,
-                    category: result.data.category_id,
+                    // category: result.data.category_id,
                     brand: result.data.brand_id,
                     price: result.data.price,
                     compare_price: result.data.compare_price,

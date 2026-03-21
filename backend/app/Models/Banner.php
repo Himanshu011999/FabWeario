@@ -16,6 +16,8 @@ class Banner extends Model
             return "";
         }
 
-        return asset('/uploads/banner/'.$this->banner_image);
+        return $this->banner_image 
+            ? asset('uploads/banner/' . $this->banner_image) 
+            : null;
     }
 }
