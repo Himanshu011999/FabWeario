@@ -1,17 +1,21 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react'; // ✅ added useState
 import { useForm } from 'react-hook-form';
 import Layout from '../common/Layout';
 import { apiUrl } from '../common/http';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { AdminAuthContext } from '../context/AdminAuth';
+import Loader from '../common/Loader';
 
 const Login = () => {
+    const [loader, setLoader] = useState(false); // ✅ start with false
     const { login } = useContext(AdminAuthContext);
     const { register, handleSubmit, formState: { errors } } = useForm();
     const navigate = useNavigate();
 
     const onSubmit = async (data) => {
+        setLoader(true); // ✅ start loader
+
         try {
             const response = await fetch(`${apiUrl}/admin/login`, {
                 method: 'POST',
@@ -22,7 +26,6 @@ const Login = () => {
             });
 
             const result = await response.json();
-            // console.log(result);
 
             if (result.status === 200) {
                 const adminInfo = {
@@ -33,20 +36,30 @@ const Login = () => {
 
                 localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
                 login(adminInfo);
-                navigate('/admin/dashboard');
+
+                // ✅ delay navigation so loader is visible
+                setTimeout(() => {
+                    navigate('/admin/dashboard');
+                }, 500);
+
             } else {
                 toast.error(result.message || 'Login failed');
             }
 
         } catch (error) {
-            // console.error('Login error:', error);
             toast.error('Something went wrong. Please try again.');
+        } finally {
+            setLoader(false); // ✅ stop loader
         }
     };
 
     return (
         <Layout>
-            <div className="container d-flex justify-content-center py-5">
+
+            {/* ✅ SHOW LOADER */}
+            {loader && <Loader />}
+
+            <div className={`container d-flex justify-content-center py-5 ${loader ? 'form-disabled' : ''}`}>
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="card shadow border-0 login">
                         <div className="card-body p-4">
@@ -84,7 +97,14 @@ const Login = () => {
                                 {errors.password && <p className="invalid-feedback">{errors.password.message}</p>}
                             </div>
 
-                            <button type="submit" className="btn btn-secondary">Login</button>
+                            <button 
+                                type="submit" 
+                                className="btn btn-secondary w-100"
+                                disabled={loader} // ✅ prevent multiple clicks
+                            >
+                                {loader ? 'Logging in...' : 'Login'}
+                            </button>
+
                         </div>
                     </div>
                 </form>

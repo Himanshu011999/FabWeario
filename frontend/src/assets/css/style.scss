@@ -251,6 +251,12 @@ footer {
     }
 }
 
+.form-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .section-1 .swiper .swiper-wrapper .swiper-slide {

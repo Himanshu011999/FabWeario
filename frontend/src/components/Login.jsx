@@ -1,18 +1,21 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import Layout from './common/Layout'
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiUrl } from './common/http';
 import { toast } from 'react-toastify';
 import { AuthContext } from './context/Auth';
+import Loader from './common/Loader';
 
 const Login = () => {
+    const [loader, setLoader] = useState(false);
     const { register, handleSubmit, watch, formState: { errors } } = useForm();
     const navigate = useNavigate();
 
     const { login } = useContext(AuthContext)
 
     const onSubmit = async (data) => {
+        setLoader(true);
         try {
             const response = await fetch(`${apiUrl}/login`, {
                 method: 'POST',
@@ -33,7 +36,9 @@ const Login = () => {
 
                 localStorage.setItem('userInfo', JSON.stringify(userInfo));
                 login(userInfo);
-                navigate('/account');
+                setInterval(() => {
+                    navigate('/account');
+                }, 500);
             } else {
                 toast.error(result.message || 'Login failed');
             }
@@ -41,11 +46,16 @@ const Login = () => {
         } catch (error) {
             console.error('Login error:', error);
             toast.error('Something went wrong. Please try again.');
+        } finally {
+            setLoader(false); // ✅ stop loader
         }
     };
   return (
     <Layout>
-        <div className="container d-flex justify-content-center py-5">
+
+        {loader && <Loader />}
+
+        <div className={`container d-flex justify-content-center py-5 ${loader ? 'form-disabled' : ''}`}>
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="card shadow border-0 login">
                         <div className="card-body p-4">
@@ -81,7 +91,13 @@ const Login = () => {
                                 {errors.password && <p className="invalid-feedback">{errors.password.message}</p>}
                             </div>
 
-                            <button type="submit" className="btn btn-secondary w-100">Login</button>
+                            <button 
+                                type="submit" 
+                                className="btn btn-secondary w-100"
+                                disabled={loader}
+                            >
+                                {loader ? 'Logging in...' : 'Login'}
+                            </button>
 
                             <div className='d-flex justify-content-center pt-4 pb-2'>
                                     Don't have an account? &nbsp; <Link to="/account/register">Register</Link>
