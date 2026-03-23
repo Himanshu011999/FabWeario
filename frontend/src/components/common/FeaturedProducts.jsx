@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { apiUrl } from "../common/http.jsx"
 import { Link } from 'react-router-dom'
+import Loader from '../common/Loader'
 
 const FeaturedProducts = () => {
+    const [loader, setLoader] = useState(true)
     const [products, setProducts] = useState([])
     
     const featuredProducts = async () => {
@@ -15,6 +17,7 @@ const FeaturedProducts = () => {
         })
         .then(res => res.json())
         .then(result => {
+            setLoader(false)
             setProducts(result.data)
             // console.log(result)
         });
@@ -29,6 +32,10 @@ const FeaturedProducts = () => {
         <div className="container">
             <h2>Featured Products</h2>
             <div className="row mt-4">
+                {
+                        loader == true && <Loader />
+                    }
+
                 {
                     products && products.map((product) => {
                         return (

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { apiUrl } from "../common/http.jsx"
 import { Link } from 'react-router-dom'
+import Loader from '../common/Loader'
 
 const LatestProducts = () => {
+    const [loader, setLoader] = useState(true)
     const [products, setProducts] = useState([])
 
     const latestProducts = async () => {
@@ -15,6 +17,7 @@ const LatestProducts = () => {
         })
         .then(res => res.json())
         .then(result => {
+            setLoader(false)
             setProducts(result.data)
             // console.log(result)
         });
@@ -29,6 +32,9 @@ const LatestProducts = () => {
         <div className="container">
             <h2>New Arrivals</h2>
             <div className="row mt-4">
+                {
+                        loader == true && <Loader />
+                    }
                 {
                     products && products.map((product) => {
                         return (
