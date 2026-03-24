@@ -1,33 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
+import React, { useEffect, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
 
-import SliderOneImg from '../../assets/images/banner-1.jpg';
-import SliderTwoImg from '../../assets/images/banner-2.jpg';
-import { apiUrl } from './http';
+import { apiUrl } from "./http";
+import Loader from "./Loader";
 
 const Hero = () => {
-    const [banners, setBanners] = useState([]);
+  const [loader, setLoader] = useState(true);
+  const [banners, setBanners] = useState([]);
 
-    const fetchBanner = async () => {
-        await fetch(apiUrl+'/get-banner',{
-            method: 'GET',
-            headers: {
-                'content-type': 'application/json',
-                'Accept': 'application/json',
-            }
-        })
-        .then(res => res.json())
-        .then(result => {
-            setBanners(result.data)
-        });
+  const fetchBanner = async () => {
+    try {
+      const res = await fetch(apiUrl + "/get-banner", {
+        method: "GET",
+        headers: {
+          "content-type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
+      const result = await res.json();
+      setBanners(result.data || []);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+    } finally {
+      setLoader(false); // ✅ always stop loader
     }
+  };
 
-    useEffect(() => {
-        fetchBanner();
-    }, []);
+  useEffect(() => {
+    fetchBanner();
+  }, []);
+
+  // ✅ Show only loader while loading
+  if (loader) {
+    return (
+      <section className="section-1">
+        <Loader />
+      </section>
+    );
+  }
 
   return (
     <section className="section-1">
@@ -36,24 +50,19 @@ const Hero = () => {
         navigation
         spaceBetween={0}
         slidesPerView={1}
-        breakpoints={{
-          1024: {
-            slidesPerView: 1,
-            spaceBetween: 0,
-          },
-        }}
       >
-        {
-            banners.map((banner, index) => {
-                return (
-                    <SwiperSlide key={index}>
-                        <div className="content" style={{ backgroundImage: `url(${banner.image_url})` }}>
-                            {/* You can add inner content here */}
-                        </div>
-                    </SwiperSlide>
-                );
-            })
-        }
+        {banners.length > 0 ? (
+          banners.map((banner, index) => (
+            <SwiperSlide key={index}>
+              <div
+                className="content"
+                style={{ backgroundImage: `url(${banner.image_url})` }}
+              ></div>
+            </SwiperSlide>
+          ))
+        ) : (
+          <div>No banners found</div>
+        )}
       </Swiper>
     </section>
   );
